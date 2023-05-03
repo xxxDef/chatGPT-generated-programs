@@ -56,12 +56,15 @@ class Program
         {
             Type parameterType = parameters[i].ParameterType;
             string argumentString = args[i + 2];
-            if (!TryConvertArgument(argumentString, parameterType, out object argumentValue))
+            try
             {
-                Console.WriteLine($"Failed to convert argument {argumentString} to type {parameterType.Name}.");
+                arguments[i] = Convert.ChangeType(argumentString, parameterType);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to convert argument {argumentString} to type {parameterType.Name}: {ex.Message}");
                 return;
             }
-            arguments[i] = argumentValue;
         }
 
         methodInfo.Invoke(instance, arguments);
@@ -84,29 +87,5 @@ class Program
                 Console.WriteLine(")");
             }
         }
-    }
-
-    static bool TryConvertArgument(string argumentString, Type targetType, out object targetValue)
-    {
-        targetValue = null;
-
-        if (targetType == typeof(string))
-        {
-            targetValue = argumentString;
-            return true;
-        }
-
-        MethodInfo parseMethod = targetType.GetMethod("Parse", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(string) }, null);
-        if (parseMethod != null && parseMethod.ReturnType == targetType)
-        {
-            try
-            {
-                targetValue = parseMethod.Invoke(null, new[] { argumentString });
-                return true;
-            }
-            catch { }
-        }
-
-        return false;
     }
 }
