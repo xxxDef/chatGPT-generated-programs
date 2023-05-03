@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CommandLineShell": {
+      "commandName": "Project",
+      "commandLineArgs": "sample methodWithOneParameter param"
+    }
+  }
+}
