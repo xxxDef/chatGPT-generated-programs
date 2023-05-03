@@ -179,7 +179,17 @@ class Program
 
     static List<MethodInfo> GetPublicInstanceMethods(Type type)
     {
-        return type.GetMethods(BindingFlags.Public | BindingFlags.Instance).ToList();
+        List<MethodInfo> methods = new List<MethodInfo>();
+
+        foreach (MethodInfo method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
+        {
+            if (method.DeclaringType == type)
+            {
+                methods.Add(method);
+            }
+        }
+
+        return methods;
     }
 
     static int ReadInt(string prompt)
