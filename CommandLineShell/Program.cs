@@ -207,12 +207,14 @@ class Program
         for (int i = 0; i < classes.Count; i++)
         {
             Console.WriteLine($"  {i + 1}. {classes[i].FullName}");
+            PrintMethods(classes[i]);
         }
 
         Console.WriteLine();
         Console.WriteLine("Interactive mode:");
         Console.WriteLine("  dotnet run interactive");
     }
+
 
     static void PrintMethods(Type type)
     {
