@@ -21,11 +21,19 @@ class Program
         string className = args[0];
         string methodName = args[1];
 
-        Type type = Type.GetType(className);
+        Type type = Type.GetType(className, false, true);
         if (type == null)
         {
-            Console.WriteLine($"Class {className} not found.");
-            return;
+            type = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(s => s.GetTypes())
+                .Where(t => t.IsPublic && t.Name.StartsWith(className))
+                .FirstOrDefault();
+
+            if (type == null)
+            {
+                Console.WriteLine($"Class {className} not found.");
+                return;
+            }
         }
 
         object instance = Activator.CreateInstance(type);
@@ -49,16 +57,15 @@ class Program
     {
         Console.WriteLine("Usage: Program <ClassName> <MethodName>");
         Console.WriteLine("Possible classes:");
-        foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
+        foreach (var type in AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(s => s.GetTypes())
+            .Where(t => t.IsPublic))
         {
-            if (type.IsPublic)
+            Console.WriteLine($"- {type.Name}");
+            Console.WriteLine("  Possible methods:");
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
             {
-                Console.WriteLine($"- {type.Name}");
-                Console.WriteLine("  Possible methods:");
-                foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
-                {
-                    Console.WriteLine($"  - {method.Name}");
-                }
+                Console.WriteLine($"  - {method.Name}");
             }
         }
     }
