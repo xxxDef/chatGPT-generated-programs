@@ -98,67 +98,71 @@ class Program
         methodInfo.Invoke(instance, arguments);
     }
 
-    static void RunCommandMode(string[] args)
+    private static void RunCommandMode(string[] args)
+{
+    if (args.Length == 0 || args[0].ToLower() == "help")
     {
-        string className = args[0];
-        string methodName = args[1];
-
-        Type type = Type.GetType(className, false, true);
-        if (type == null)
-        {
-            type = AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(s => s.GetTypes())
-                .Where(t => t.IsPublic && t.Name.StartsWith(className))
-                .FirstOrDefault();
-
-            if (type == null)
-            {
-                Console.WriteLine($"Class {className} not found.");
-                return;
-            }
-        }
-
-        object instance = Activator.CreateInstance(type);
-        if (instance == null)
-        {
-            Console.WriteLine($"Failed to create instance of {className}.");
-            return;
-        }
-
-        MethodInfo[] methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
-        MethodInfo method = methods.FirstOrDefault(m => m.Name == methodName);
-        if (method == null)
-        {
-            Console.WriteLine($"Method {methodName} not found in class {className}.");
-            return;
-        }
-
-        var parameters = method.GetParameters();
-        var arguments = new object[parameters.Length];
-
-        if (args.Length != parameters.Length + 2)
-        {
-            Console.WriteLine($"Wrong number of arguments. Method {methodName} in class {className} expects {parameters.Length} argument(s).");
-            return;
-        }
-
-        for (int i = 0; i < parameters.Length; i++)
-        {
-            Type parameterType = parameters[i].ParameterType;
-            string input = args[i + 2];
-            try
-            {
-                arguments[i] = Convert.ChangeType(input, parameterType);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to convert {input} to type {parameterType.Name}: {ex.Message}");
-                return;
-            }
-        }
-
-        method.Invoke(instance, arguments);
+        PrintHelp();
+        return;
     }
+
+    if (args[0].ToLower() == "interactive")
+    {
+        RunInteractiveMode();
+        return;
+    }
+
+    Type type = GetPublicClasses().FirstOrDefault(t => t.Name.ToLower() == args[0].ToLower() || t.Name.ToLower() == args[0].ToLower() + "class");
+
+    if (type == null)
+    {
+        Console.WriteLine($"Error: class \"{args[0]}\" not found.");
+        Console.WriteLine();
+        PrintHelp();
+        return;
+    }
+
+    MethodInfo method = GetPublicInstanceMethods(type).FirstOrDefault(m => m.Name.ToLower() == args[1].ToLower());
+
+    if (method == null)
+    {
+        Console.WriteLine($"Error: method \"{args[1]}\" not found in class \"{type.Name}\".");
+        Console.WriteLine();
+        PrintMethods(type);
+        return;
+    }
+
+    ParameterInfo[] parameters = method.GetParameters();
+    object[] arguments = new object[parameters.Length];
+
+    if (args.Length - 2 != parameters.Length)
+    {
+        Console.WriteLine($"Error: wrong number of arguments for method \"{method.Name}\".");
+        Console.WriteLine();
+        PrintMethodUsage(method);
+        return;
+    }
+
+    for (int i = 0; i < parameters.Length; i++)
+    {
+        try
+        {
+            arguments[i] = Convert.ChangeType(args[i + 2], parameters[i].ParameterType);
+        }
+        catch (FormatException)
+        {
+            Console.WriteLine($"Error: invalid value for parameter \"{parameters[i].Name}\".");
+            Console.WriteLine();
+            PrintMethodUsage(method);
+            return;
+        }
+    }
+
+    object instance = Activator.CreateInstance(type);
+    method.Invoke(instance, arguments);
+}
+
+
 
     static List<Type> GetPublicClasses()
     {
@@ -176,7 +180,10 @@ class Program
         return classes;
     }
 
-
+private static void PrintMethodUsage(MethodInfo method)
+{
+    Console.WriteLine($"Usage: {method.DeclaringType.Name}.{method.Name}({string.Join(", ", method.GetParameters().Select(p => $"{p.ParameterType.Name} {p.Name}"))})");
+}
     static List<MethodInfo> GetPublicInstanceMethods(Type type)
     {
         List<MethodInfo> methods = new List<MethodInfo>();
