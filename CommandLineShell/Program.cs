@@ -201,11 +201,27 @@ class Program
     {
         Console.WriteLine("Usage: dotnet run <class_name> <method_name> [<arg1> <arg2> ...]");
         Console.WriteLine();
-        Console.WriteLine("Examples:");
-        Console.WriteLine("  dotnet run MyClass MyMethod");
-        Console.WriteLine("  dotnet run MyNamespace.MyClass MyMethod 42 \"hello world\"");
+        Console.WriteLine("Available classes:");
+
+        List<Type> classes = GetPublicClasses();
+        for (int i = 0; i < classes.Count; i++)
+        {
+            Console.WriteLine($"  {i + 1}. {classes[i].FullName}");
+        }
+
         Console.WriteLine();
         Console.WriteLine("Interactive mode:");
         Console.WriteLine("  dotnet run interactive");
     }
+
+    static void PrintMethods(Type type)
+    {
+        Console.WriteLine($"Methods of class {type.FullName}:");
+        List<MethodInfo> methods = GetPublicInstanceMethods(type);
+        for (int i = 0; i < methods.Count; i++)
+        {
+            Console.WriteLine($"  {i + 1}. {methods[i].Name}({string.Join(", ", methods[i].GetParameters().Select(p => p.ParameterType.Name))})");
+        }
+    }
+
 }
