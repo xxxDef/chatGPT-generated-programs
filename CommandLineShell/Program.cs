@@ -162,11 +162,20 @@ class Program
 
     static List<Type> GetPublicClasses()
     {
-        return AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(s => s.GetTypes())
-            .Where(t => t.IsPublic && t.IsClass)
-            .ToList();
+        List<Type> classes = new List<Type>();
+        Assembly assembly = Assembly.GetExecutingAssembly();
+
+        foreach (Type type in assembly.GetTypes())
+        {
+            if (type.IsClass && type.IsPublic)
+            {
+                classes.Add(type);
+            }
+        }
+
+        return classes;
     }
+
 
     static List<MethodInfo> GetPublicInstanceMethods(Type type)
     {
