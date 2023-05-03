@@ -6,15 +6,9 @@ class Program
 {
     static void Main(string[] args)
     {
-        if (args.Length == 0)
+        if (args.Length < 2)
         {
             PrintHelp();
-            return;
-        }
-
-        if (args.Length != 2)
-        {
-            Console.WriteLine("Usage: Program <ClassName> <MethodName>");
             return;
         }
 
@@ -50,12 +44,32 @@ class Program
             return;
         }
 
-        methodInfo.Invoke(instance, null);
+        var parameters = methodInfo.GetParameters();
+        if (args.Length - 2 != parameters.Length)
+        {
+            Console.WriteLine($"Method {methodName} requires {parameters.Length} arguments.");
+            return;
+        }
+
+        var arguments = new object[parameters.Length];
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            Type parameterType = parameters[i].ParameterType;
+            string argumentString = args[i + 2];
+            if (!TryConvertArgument(argumentString, parameterType, out object argumentValue))
+            {
+                Console.WriteLine($"Failed to convert argument {argumentString} to type {parameterType.Name}.");
+                return;
+            }
+            arguments[i] = argumentValue;
+        }
+
+        methodInfo.Invoke(instance, arguments);
     }
 
     static void PrintHelp()
     {
-        Console.WriteLine("Usage: Program <ClassName> <MethodName>");
+        Console.WriteLine("Usage: Program <ClassName> <MethodName> [args...]");
         Console.WriteLine("Possible classes:");
         foreach (var type in AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(s => s.GetTypes())
@@ -65,8 +79,34 @@ class Program
             Console.WriteLine("  Possible methods:");
             foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
             {
-                Console.WriteLine($"  - {method.Name}");
+                Console.Write($"  - {method.Name}(");
+                Console.Write(string.Join(", ", method.GetParameters().Select(p => $"{p.ParameterType.Name} {p.Name}")));
+                Console.WriteLine(")");
             }
         }
+    }
+
+    static bool TryConvertArgument(string argumentString, Type targetType, out object targetValue)
+    {
+        targetValue = null;
+
+        if (targetType == typeof(string))
+        {
+            targetValue = argumentString;
+            return true;
+        }
+
+        MethodInfo parseMethod = targetType.GetMethod("Parse", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(string) }, null);
+        if (parseMethod != null && parseMethod.ReturnType == targetType)
+        {
+            try
+            {
+                targetValue = parseMethod.Invoke(null, new[] { argumentString });
+                return true;
+            }
+            catch { }
+        }
+
+        return false;
     }
 }
