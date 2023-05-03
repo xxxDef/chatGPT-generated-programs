@@ -1,9 +1,17 @@
 ﻿using System;
+using System.Linq;
+using System.Reflection;
 
 class Program
 {
     static void Main(string[] args)
     {
+        if (args.Length == 0)
+        {
+            PrintHelp();
+            return;
+        }
+
         if (args.Length != 2)
         {
             Console.WriteLine("Usage: Program <ClassName> <MethodName>");
@@ -35,5 +43,23 @@ class Program
         }
 
         methodInfo.Invoke(instance, null);
+    }
+
+    static void PrintHelp()
+    {
+        Console.WriteLine("Usage: Program <ClassName> <MethodName>");
+        Console.WriteLine("Possible classes:");
+        foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
+        {
+            if (type.IsPublic)
+            {
+                Console.WriteLine($"- {type.Name}");
+                Console.WriteLine("  Possible methods:");
+                foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    Console.WriteLine($"  - {method.Name}");
+                }
+            }
+        }
     }
 }
